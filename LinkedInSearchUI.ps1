@@ -1,4 +1,4 @@
-﻿Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
 # Mapear localizações para geoUrn do LinkedIn
@@ -13,23 +13,22 @@ function Open-LinkedInSearch {
     param(
         [string]$Keywords,
         [string]$Location,
-        [string]$JobTitle,
         [bool]$OpenToWork
     )
 
     if (-not $Keywords.Trim()) {
         [System.Windows.Forms.MessageBox]::Show("Por favor, insira as keywords.","Erro")
-        return
+        return $false
     }
     if (-not $Location.Trim()) {
         [System.Windows.Forms.MessageBox]::Show("Por favor, selecione a localização.","Erro")
-        return
+        return $false
     }
 
     # Formata keywords com AND
     $terms = $Keywords -split ',' | ForEach-Object { $_.Trim() }
 
-    # Adiciona OpenToWork se selecionado
+    # OpenToWork (opcional)
     if ($OpenToWork) {
         $terms += "#OpenToWork"
     }
@@ -39,19 +38,14 @@ function Open-LinkedInSearch {
     # Localização
     if ($geoMap.ContainsKey($Location)) {
         $geoUrn = [System.Uri]::EscapeDataString("[$($geoMap[$Location])]")
+
     } else {
         $geoUrn = ""
     }
 
-    # Cargo
-    $titleParam = ""
-    if ($JobTitle.Trim()) {
-        $titleParam = "&title=" + [System.Uri]::EscapeDataString($JobTitle.Trim())
-    }
-
     # Monta URL LinkedIn
-    $linkedinUrl = "https://www.linkedin.com/search/results/people/?keywords=$searchTerms$titleParam"
-    if ($geoUrn -ne "") {
+    $linkedinUrl = "https://www.linkedin.com/search/results/people/?keywords=$searchTerms"
+    if ($geoUrn) {
         $linkedinUrl += "&geoUrn=$geoUrn"
     }
 
@@ -59,15 +53,17 @@ function Open-LinkedInSearch {
     $bravePath = "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"
     if (Test-Path $bravePath) {
         Start-Process $bravePath $linkedinUrl
+        return $true
     } else {
         [System.Windows.Forms.MessageBox]::Show("Brave não encontrado no caminho:`n$bravePath","Erro")
+        return $false
     }
 }
 
 # ---------- FORM ----------
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "Pesquisa de Candidatos LinkedIn"
-$form.Size = New-Object System.Drawing.Size(520,360)
+$form.Size = New-Object System.Drawing.Size(520,320)
 $form.StartPosition = "CenterScreen"
 $form.FormBorderStyle = 'FixedDialog'
 $form.MaximizeBox = $false
@@ -75,7 +71,7 @@ $form.MaximizeBox = $false
 # ---------- GROUPBOX ----------
 $group = New-Object System.Windows.Forms.GroupBox
 $group.Text = "Pesquisa de Candidatos"
-$group.Size = New-Object System.Drawing.Size(480,230)
+$group.Size = New-Object System.Drawing.Size(480,200)
 $group.Location = New-Object System.Drawing.Point(15,10)
 $form.Controls.Add($group)
 
@@ -102,25 +98,18 @@ $comboLocation = New-Object System.Windows.Forms.ComboBox
 $comboLocation.Size = New-Object System.Drawing.Size(450,25)
 $comboLocation.Location = New-Object System.Drawing.Point(10,105)
 $comboLocation.DropDownStyle = 'DropDownList'
-$comboLocation.Items.AddRange(@("Portugal","Lisboa e Região","Porto e Região","Faro e Região"))
+$comboLocation.Items.AddRange(@(
+    "Portugal",
+    "Lisboa e Região",
+    "Porto e Região",
+    "Faro e Região"
+))
 $group.Controls.Add($comboLocation)
-
-# ---------- CARGO ----------
-$lblJob = New-Object System.Windows.Forms.Label
-$lblJob.Text = "Cargo (opcional):"
-$lblJob.Location = New-Object System.Drawing.Point(10,140)
-$lblJob.AutoSize = $true
-$group.Controls.Add($lblJob)
-
-$txtJob = New-Object System.Windows.Forms.TextBox
-$txtJob.Size = New-Object System.Drawing.Size(450,25)
-$txtJob.Location = New-Object System.Drawing.Point(10,160)
-$group.Controls.Add($txtJob)
 
 # ---------- OPENTOWORK ----------
 $chkOpen = New-Object System.Windows.Forms.CheckBox
 $chkOpen.Text = "Apenas #OpenToWork"
-$chkOpen.Location = New-Object System.Drawing.Point(10,195)
+$chkOpen.Location = New-Object System.Drawing.Point(10,140)
 $chkOpen.AutoSize = $true
 $group.Controls.Add($chkOpen)
 
@@ -128,23 +117,32 @@ $group.Controls.Add($chkOpen)
 $btnSearch = New-Object System.Windows.Forms.Button
 $btnSearch.Text = "Pesquisar"
 $btnSearch.Size = New-Object System.Drawing.Size(110,35)
-$btnSearch.Location = New-Object System.Drawing.Point(260,260)
+$btnSearch.Location = New-Object System.Drawing.Point(260,235)
 $btnSearch.BackColor = [System.Drawing.Color]::FromArgb(0,120,215)
 $btnSearch.ForeColor = 'White'
 $btnSearch.Font = New-Object System.Drawing.Font("Segoe UI",10,[System.Drawing.FontStyle]::Bold)
+
 $btnSearch.Add_Click({
-    Open-LinkedInSearch `
+    $success = Open-LinkedInSearch `
         $txtKeywords.Text `
         $comboLocation.Text `
-        $txtJob.Text `
         $chkOpen.Checked
+
+    if ($success) {
+        # RESET DO FORM
+        $txtKeywords.Clear()
+        $comboLocation.SelectedIndex = -1
+        $chkOpen.Checked = $false
+        $txtKeywords.Focus()
+    }
 })
+
 $form.Controls.Add($btnSearch)
 
 $btnClose = New-Object System.Windows.Forms.Button
 $btnClose.Text = "Fechar"
 $btnClose.Size = New-Object System.Drawing.Size(110,35)
-$btnClose.Location = New-Object System.Drawing.Point(380,260)
+$btnClose.Location = New-Object System.Drawing.Point(380,235)
 $btnClose.BackColor = 'Gray'
 $btnClose.ForeColor = 'White'
 $btnClose.Font = $btnSearch.Font
@@ -153,4 +151,3 @@ $form.Controls.Add($btnClose)
 
 # ---------- MOSTRAR FORM ----------
 [void]$form.ShowDialog()
-
