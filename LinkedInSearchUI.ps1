@@ -50,7 +50,7 @@ function Open-LinkedInSearch {
     }
 
     # Abrir no Brave
-    $bravePath = "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe"
+    $bravePath = "CAMINHO DO EXE DO BROWSER"
     if (Test-Path $bravePath) {
         Start-Process $bravePath $linkedinUrl
         return $true
@@ -151,3 +151,4 @@ $form.Controls.Add($btnClose)
 
 # ---------- MOSTRAR FORM ----------
 [void]$form.ShowDialog()
+
