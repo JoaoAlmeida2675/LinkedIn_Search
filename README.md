@@ -68,7 +68,7 @@ Após uma pesquisa bem-sucedida, o formulário é automaticamente limpo.
 - Windows 10 ou superior  
 - PowerShell 5.1 ou PowerShell 7  
 - Brave Browser instalado em:
-
+- Caso usem outro browser, terão de dar o caminho do executavel.
 
 > ⚠️ Se o Brave estiver noutro caminho, altera a variável `$bravePath` no script.
 
